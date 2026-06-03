@@ -47,6 +47,20 @@ namespace AutoNavigate
             }
         }
 
+        private static bool ShouldLockSailCursor()
+        {
+            if (__this == null ||
+                __this.player == null ||
+                s_NavigateInstance == null ||
+                !s_NavigateInstance.enable ||
+                (!__this.player.sailing && !__this.player.warping))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         private AutoNavigation.NavigationConfig GetNavigationConfig()
         {
             var config = new AutoNavigation.NavigationConfig();
@@ -279,6 +293,19 @@ namespace AutoNavigate
                     if (isSailRotRead)
                         yield return new CodeInstruction(OpCodes.Call, useAutoSailURot);
                 }
+            }
+        }
+
+        [HarmonyPatch(typeof(SailPoser), "Calculate")]
+        private class SailPoser_Calculate
+        {
+            private static void Prefix()
+            {
+                if (!ShouldLockSailCursor())
+                    return;
+
+                UICursor.LockCursor();
+                UICursor.SetLockCursorDirect(true);
             }
         }
 
