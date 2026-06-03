@@ -2,44 +2,74 @@
 
 ENG | [中文](README.zh-CN.md)
 
-This is an improved lightweight auto-navigation mod for Dyson Sphere Program.
-It is based on earlier auto-navigation source code by **DarlingZeroX** and has
-been updated for a newer local game build.
+An improved lightweight auto-navigation mod for Dyson Sphere Program. It is
+based on earlier auto-navigation source code by **DarlingZeroX** and updated for
+newer DSP builds.
 
-## AutoNavigation
+## Features
 
-Main behavior:
-
-- Set a starmap direction indicator.
+- Set a starmap direction indicator as the destination.
 - Press `K` or numpad `0` to toggle auto navigation.
 - Press `Left Ctrl` over a starmap target to quick-set the indicator.
 - Press `W/A/S/D` to cancel auto navigation or take manual control.
-- During auto navigation, mouse movement is kept for camera viewing only and no
-  longer steers Icarus away from the auto-navigation route.
+- During auto navigation, mouse movement controls the camera only. It no longer
+  steers Icarus away from the route.
 
-Current notes:
+## What Changed
 
+Project and compatibility changes:
+
+- Renamed the mod from the old Stellar naming to `AutoNavigation`.
 - Built against current local DSP game assemblies.
-- Keeps the old lightweight behavior instead of using CruiseAssist/AutoPilot.
-- For current DSP versions, auto-navigation separates the camera look direction
-  from the sail physics direction.
+- Added references to `netstandard.dll` and `UnityEngine.InputLegacyModule.dll`.
+- Removed the old post-build event that copied to a hard-coded Steam path and
+  launched Steam.
+- `ModTranslate.LocalText()` now returns the source text directly because the
+  old localization API no longer matches current game assemblies.
 
-See [AUTO_NAVIGATION_PORT.md](AUTO_NAVIGATION_PORT.md) for detailed port notes.
-Chinese notes are available at
-[AUTO_NAVIGATION_PORT.zh-CN.md](AUTO_NAVIGATION_PORT.zh-CN.md).
+Sail-control changes for current DSP:
 
-## Release DLL
+- Current DSP sail mode uses camera-facing input as part of sail physics, so
+  mouse look can also steer Icarus.
+- This build stores an internal auto-navigation sail direction instead of
+  directly writing it into the camera-linked `SailPoser` state.
+- During auto navigation, sail physics reads of `PlayerController.fwdRayUDir`,
+  `SailPoser.targetURot`, and `SailPoser.targetURotWanted` are patched to use
+  the auto-navigation direction.
+- The actual camera state remains free to follow mouse movement.
 
-The current built DLL is stored at:
+## Build
+
+Open `DspMods.sln` or build:
+
+```powershell
+& "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin\MSBuild.exe" `
+  .\AutoNavigation\AutoNavigation.csproj `
+  /p:Configuration=Release `
+  /p:Platform=AnyCPU
+```
+
+If the .NET Framework 4.7.2 targeting pack is unavailable, pass a
+`FrameworkPathOverride` that points at a local reference-assemblies package.
+
+## Install
+
+Install BepInEx for Dyson Sphere Program, then copy:
 
 ```text
 release\AutoNavigation\AutoNavigation.dll
 ```
 
-Install it to:
+to:
 
 ```text
 Dyson Sphere Program\BepInEx\plugins\AutoNavigation.dll
+```
+
+Current release DLL:
+
+```text
+SHA256: A914DB3AF4CD178E04C4191AAED3F87790F9EB3474C46D4664584498AF820F83
 ```
 
 ## Attribution
