@@ -167,6 +167,8 @@ namespace AutoNavigate
                     modeText.text = "星际自动导航".LocalText();
                 else if (s_NavigateInstance.IsCurNavStar)
                     modeText.text = "星系自动导航".LocalText();
+                else if (s_NavigateInstance.IsCurNavHive)
+                    modeText.text = "黑雾巢穴自动导航".LocalText();
 
                 s_NavigateInstance.modeText = modeText;
             }
@@ -216,6 +218,8 @@ namespace AutoNavigate
                     s_NavigateInstance.StarNavigation(__instance);
                 else if (s_NavigateInstance.IsCurNavPlanet)
                     s_NavigateInstance.PlanetNavigation(__instance);
+                else if (s_NavigateInstance.IsCurNavHive)
+                    s_NavigateInstance.HiveNavigation(__instance);
             }
 
             private static void Postfix(PlayerMove_Sail __instance)
@@ -414,6 +418,13 @@ namespace AutoNavigate
                     s_NavigateInstance.target.SetTarget(__instance.focusStar.star);
                     return;
                 }
+
+                if ((UnityEngine.Object)__instance.focusHive != (UnityEngine.Object)null &&
+                    __instance.focusHive.hive != null)
+                {
+                    s_NavigateInstance.target.SetTarget(__instance.focusHive.hive);
+                    return;
+                }
             }
         }
 
@@ -438,6 +449,7 @@ namespace AutoNavigate
                 {
                     __instance.focusStar = __instance.mouseHoverStar;
                     __instance.focusPlanet = null;
+                    __instance.focusHive = null;
                     __instance.OnCursorFunction3Click(0);
 
                     //s_NavigateInstance.target.SetTarget(__instance.mouseHoverStar.star);
@@ -448,9 +460,20 @@ namespace AutoNavigate
                 {
                     __instance.focusPlanet = __instance.mouseHoverPlanet;
                     __instance.focusStar = null;
+                    __instance.focusHive = null;
                     __instance.OnCursorFunction3Click(0);
 
                     //s_NavigateInstance.target.SetTarget(__instance.mouseHoverPlanet.planet);
+                    return;
+                }
+
+                if (__instance.mouseHoverHive != null && __instance.mouseHoverHive.hive != null)
+                {
+                    s_NavigateInstance.target.SetTarget(__instance.mouseHoverHive.hive);
+                    __instance.focusHive = __instance.mouseHoverHive;
+                    __instance.focusPlanet = null;
+                    __instance.focusStar = null;
+                    __instance.OnCursorFunction3Click(0);
                     return;
                 }
             }

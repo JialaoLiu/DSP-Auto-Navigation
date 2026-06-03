@@ -19,7 +19,8 @@ namespace AutoNavigate
         {
             Null,
             Star,
-            Planet
+            Planet,
+            Hive
         }
 
         public class Target
@@ -27,13 +28,15 @@ namespace AutoNavigate
             public static double s_FocusParam = 0.01;
             private PlanetData m_PlanetData = null;
             private StarData m_StarData = null;
+            private EnemyDFHiveSystem m_Hive = null;
 
-            public bool IsVaild() => (TargetStar != null) || (TargetPlanet != null);
+            public bool IsVaild() => (TargetStar != null) || (TargetPlanet != null) || (TargetHive != null);
 
             public void Reset()
             {
                 m_PlanetData = null;
                 m_StarData = null;
+                m_Hive = null;
             }
 
             public void SetTarget(StarData star)
@@ -48,9 +51,38 @@ namespace AutoNavigate
                 m_PlanetData = planet;
             }
 
+            public void SetTarget(EnemyDFHiveSystem hive)
+            {
+                Reset();
+                m_Hive = hive;
+            }
+
             public PlanetData TargetPlanet => m_PlanetData;
 
             public StarData TargetStar => m_StarData;
+
+            public EnemyDFHiveSystem TargetHive => m_Hive;
+
+            public VectorLF3 HivePosition
+            {
+                get
+                {
+                    if (TargetHive != null &&
+                        TargetHive.sector != null &&
+                        TargetHive.sector.astros != null)
+                    {
+                        int astroIndex = TargetHive.hiveAstroId - SpaceSector.kAstroIdBase;
+                        if (astroIndex >= 0 && astroIndex < TargetHive.sector.astros.Length)
+                            return TargetHive.sector.astros[astroIndex].uPos;
+                    }
+
+                    if (TargetHive != null && TargetHive.starData != null)
+                        return TargetHive.starData.uPosition;
+
+                    ModDebug.Error("Get HivePosition while no valid hive!!!");
+                    return VectorLF3.zero;
+                }
+            }
 
             public static bool IsFocusing(VectorLF3 lineL, VectorLF3 lineR)
             {
@@ -74,6 +106,10 @@ namespace AutoNavigate
                     {
                         return TargetStar.uPosition;
                     }
+                    else if (TargetHive != null)
+                    {
+                        return HivePosition;
+                    }
                     else
                     {
                         ModDebug.Error("Get Target Position while no target!!!");
@@ -94,6 +130,10 @@ namespace AutoNavigate
                 {
                     dist = (TargetStar.uPosition - __instance.uPosition).magnitude;
                 }
+                else if (TargetHive != null)
+                {
+                    dist = (HivePosition - __instance.uPosition).magnitude;
+                }
                 else
                 {
                     ModDebug.Error("GetDistance while no target!!!");
@@ -113,6 +153,10 @@ namespace AutoNavigate
                 else if (TargetStar != null)
                 {
                     dir = (TargetStar.uPosition - __instance.uPosition).normalized;
+                }
+                else if (TargetHive != null)
+                {
+                    dir = (HivePosition - __instance.uPosition).normalized;
                 }
                 else
                 {
@@ -157,6 +201,8 @@ namespace AutoNavigate
                     return NavigateType.Star;
                 else if (IsCurNavPlanet)
                     return NavigateType.Planet;
+                else if (IsCurNavHive)
+                    return NavigateType.Hive;
                 else
                     return NavigateType.Null;
             }
@@ -165,6 +211,8 @@ namespace AutoNavigate
         public bool IsCurNavPlanet => target.TargetPlanet != null;
 
         public bool IsCurNavStar => target.TargetStar != null;
+
+        public bool IsCurNavHive => target.TargetHive != null;
 
         public Target target;
         public Text modeText;
@@ -217,6 +265,7 @@ namespace AutoNavigate
         private double planetNearestDistance;
         private int sparseStarPlanetCount;
         private double sparseStarPlanetNearestDistance;
+        private double hiveArriveDistance;
         private double longNavUncoverRange;
         private double shortNavUncoverRange;
         private bool enableLocalWrap;
@@ -236,6 +285,8 @@ namespace AutoNavigate
             if (enable == true)
                 return enable;
 
+            SyncTargetFromIndicator();
+
             if (CurNavigateType == NavigateType.Null)
             {
                 Arrive();
@@ -252,6 +303,44 @@ namespace AutoNavigate
             }
 
             return enable;
+        }
+
+        private void SyncTargetFromIndicator()
+        {
+            Player mainPlayer = GameMain.mainPlayer;
+            if (mainPlayer == null || mainPlayer.navigation == null)
+                return;
+
+            int astroId = mainPlayer.navigation.indicatorAstroId;
+            if (astroId == 0)
+                return;
+
+            if (GameMain.data != null && GameMain.data.galaxy != null)
+            {
+                PlanetData planet = GameMain.data.galaxy.PlanetByAstroId(astroId);
+                if (planet != null)
+                {
+                    target.SetTarget(planet);
+                    return;
+                }
+
+                StarData star = GameMain.data.galaxy.StarById(astroId);
+                if (star != null)
+                {
+                    target.SetTarget(star);
+                    return;
+                }
+            }
+
+            if (GameMain.data != null && GameMain.data.spaceSector != null)
+            {
+                EnemyDFHiveSystem hive = GameMain.data.spaceSector.GetHiveByAstroId(astroId);
+                if (hive != null)
+                {
+                    target.SetTarget(hive);
+                    return;
+                }
+            }
         }
 
         public bool ToggleNavigate()
@@ -279,6 +368,7 @@ namespace AutoNavigate
                 planetNearestDistance = 60000.0;
                 sparseStarPlanetCount = 2;
                 sparseStarPlanetNearestDistance = 200000.0;
+                hiveArriveDistance = 20000.0;
                 Target.s_FocusParam = 0.02;
                 longNavUncoverRange = 1000.0;
                 shortNavUncoverRange = 100.0;
@@ -292,6 +382,7 @@ namespace AutoNavigate
                 planetNearestDistance = 60000.0;
                 sparseStarPlanetCount = 2;
                 sparseStarPlanetNearestDistance = 200000.0;
+                hiveArriveDistance = 20000.0;
                 Target.s_FocusParam = 0.02;
                 longNavUncoverRange = 1000.0;
                 shortNavUncoverRange = 100.0;
@@ -346,6 +437,11 @@ namespace AutoNavigate
             {
                 return true;
             }
+            else if (IsCurNavHive &&
+                target.GetDistance(GameMain.mainPlayer) < hiveArriveDistance)
+            {
+                return true;
+            }
             else
             {
                 return false;
@@ -370,6 +466,10 @@ namespace AutoNavigate
             {
                 navPlanet = true;
                 dstPoint = target.TargetPlanet.uPosition;
+            }
+            else if (IsCurNavHive)
+            {
+                dstPoint = target.HivePosition;
             }
             else
             {
@@ -619,6 +719,44 @@ namespace AutoNavigate
             ShortDistanceNavigate(__instance);
         }
 
+        public void HiveNavigation(PlayerMove_Sail __instance)
+        {
+            ModDebug.Assert(IsCurNavHive);
+            player = __instance.player;
+
+            if (!IsCurNavHive)
+            {
+                Arrive();
+#if DEBUG
+                ModDebug.Error("HiveNavigation - Error target");
+#endif
+                return;
+            }
+
+            PlanetData localPlanet = GameMain.localPlanet;
+            if (localPlanet != null)
+            {
+#if DEBUG
+                ModDebug.Log("Leave Local Planet");
+#endif
+                VectorLF3 dir = (__instance.player.uPosition - localPlanet.uPosition).normalized;
+                Sail.SetDir(__instance, dir);
+                return;
+            }
+
+            if (DetermineArrive())
+            {
+#if DEBUG
+                ModDebug.Log("Hive Navigation Arrive");
+#endif
+                Arrive();
+                Warp.TryLeaveWarp(__instance);
+                return;
+            }
+
+            LongDistanceNavigate(__instance);
+        }
+
         private void ShortDistanceNavigate(PlayerMove_Sail __instance)
         {
             VectorLF3 dir = target.GetDirection(__instance.player);
@@ -761,7 +899,7 @@ namespace AutoNavigate
                 if (!HasWarper(__instance))
                     return false;
 
-                if (self.IsCurNavStar || LocalPlanetWarp())
+                if (self.IsCurNavStar || self.IsCurNavHive || LocalPlanetWarp())
                     return true;
 
                 return false;
