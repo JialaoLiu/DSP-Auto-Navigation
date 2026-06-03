@@ -1,0 +1,15 @@
+
+Backup/
+
+*.dll
+!release/**/*.dll
+
+*.pdb
+
+*.cache
+
+.vs/DspMods/v17/.suo
+bin/
+obj/
+.vs/
+*.user
