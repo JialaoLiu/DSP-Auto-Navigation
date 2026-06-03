@@ -1,4 +1,4 @@
-﻿# AutoNavigation Current-Version Port
+# AutoNavigation Current-Version Port
 
 ENG | [中文](AUTO_NAVIGATION_PORT.zh-CN.md)
 
@@ -9,30 +9,16 @@ work; the notes below describe this improved build.
 
 Upstream reference: [DarlingZeroX/DspMods](https://github.com/DarlingZeroX/DspMods)
 
-Tested game path:
-
-```text
-E:\Game\Steam\steamapps\common\Dyson Sphere Program
-```
-
-Built against:
-
-- `DSPGAME_Data\Managed\Assembly-CSharp.dll`
-- `DSPGAME_Data\Managed\netstandard.dll`
-- Unity managed assemblies from the same game install
-- BepInEx 5.4.17
-
-## What Changed
-
-The navigation behavior is intentionally kept small and close to the lightweight
-old feel:
+## Behavior
 
 - Press `K` or numpad `0` to toggle auto navigation.
 - Set the starmap direction indicator as the target.
 - Left Ctrl in the starmap still quick-sets the indicator target.
-- `W/A/S/D` still cancels auto navigation.
+- `W/A/S/D` still cancels auto navigation or takes manual control.
+- During auto navigation, mouse movement is reserved for camera viewing. It no
+  longer steers Icarus away from the route.
 
-Compatibility changes:
+## Compatibility Changes
 
 - Project references were updated to the local/current DSP managed assemblies.
 - Added references to `netstandard.dll` and `UnityEngine.InputLegacyModule.dll`.
@@ -41,15 +27,18 @@ Compatibility changes:
 - `ModTranslate.LocalText()` now returns the source text directly because the
   old localization API no longer matches the current game assemblies.
 
-Sail-control adjustment for current DSP:
+## Sail-Control Adjustment
 
-- Current `PlayerMove_Sail.GameTick` applies `controller.input1.x` to
-  `sailPoser.targetURotWanted`, which lets mouse/turn input affect auto
-  navigation.
-- During auto navigation, this build temporarily clears `controller.input1.x`
-  while the original sail tick runs, then restores it afterward.
-- `Sail.SetDir()` now writes both `targetURot` and `targetURotWanted`, matching
-  the current game's two-stage sail rotation state.
+Current DSP sail mode uses camera-facing input as part of sail physics, so mouse
+look can also steer Icarus. This build separates those two concerns during auto
+navigation:
+
+- The mod stores an auto-navigation sail rotation internally instead of writing
+  it directly into `SailPoser`.
+- The sail physics reads `PlayerController.fwdRayUDir`,
+  `SailPoser.targetURot`, and `SailPoser.targetURotWanted`; during auto
+  navigation those reads are patched to use the auto-navigation direction.
+- The actual camera state remains free to follow mouse movement.
 
 ## Build
 
@@ -82,6 +71,5 @@ Dyson Sphere Program\BepInEx\plugins\AutoNavigation.dll
 Current release DLL:
 
 ```text
-SHA256: 5DE3EFF5F17880FD1FB36C285C83EEE24309872EB1906EDF2CAD86F63619B3D0
+SHA256: A914DB3AF4CD178E04C4191AAED3F87790F9EB3474C46D4664584498AF820F83
 ```
-

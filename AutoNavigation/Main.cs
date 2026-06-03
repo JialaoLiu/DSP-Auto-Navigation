@@ -1,5 +1,8 @@
 ﻿#define QUICK_INDICATOR
 
+using System.Collections.Generic;
+using System.Reflection;
+using System.Reflection.Emit;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -177,8 +180,9 @@ namespace AutoNavigate
         [HarmonyPatch(typeof(PlayerMove_Sail), "GameTick")]
         private class SailMode_AutoNavigate
         {
-            private static float playerTurnInputX;
-            private static bool hasPlayerTurnInput;
+            private static Quaternion originalTargetURot;
+            private static Quaternion originalTargetURotWanted;
+            private static bool hasOriginalTargetRot;
 
             private static void Prefix(PlayerMove_Sail __instance)
             {
@@ -189,23 +193,24 @@ namespace AutoNavigate
                     return;
 
                 ++__instance.controller.input0.y;
+                AutoNavigation.HasAutoSailURot = false;
+                originalTargetURot = __instance.sailPoser.targetURot;
+                originalTargetURotWanted = __instance.sailPoser.targetURotWanted;
+                hasOriginalTargetRot = true;
 
                 if (s_NavigateInstance.IsCurNavStar)
                     s_NavigateInstance.StarNavigation(__instance);
                 else if (s_NavigateInstance.IsCurNavPlanet)
                     s_NavigateInstance.PlanetNavigation(__instance);
-
-                playerTurnInputX = __instance.controller.input1.x;
-                hasPlayerTurnInput = true;
-                __instance.controller.input1.x = 0.0f;
             }
 
             private static void Postfix(PlayerMove_Sail __instance)
             {
-                if (hasPlayerTurnInput)
+                if (hasOriginalTargetRot)
                 {
-                    __instance.controller.input1.x = playerTurnInputX;
-                    hasPlayerTurnInput = false;
+                    __instance.sailPoser.targetURot = originalTargetURot;
+                    __instance.sailPoser.targetURotWanted = originalTargetURotWanted;
+                    hasOriginalTargetRot = false;
                 }
 
                 // Sail 默认不加速
@@ -218,6 +223,61 @@ namespace AutoNavigate
                     s_NavigateInstance.target.IsVaild())
                 {
                     s_NavigateInstance.HandlePlayerInput();
+                }
+            }
+
+            private static Quaternion UseAutoSailURotForPhysics(Quaternion original)
+            {
+                if (s_NavigateInstance != null &&
+                    s_NavigateInstance.enable &&
+                    AutoNavigation.HasAutoSailURot)
+                {
+                    return AutoNavigation.AutoSailURot;
+                }
+
+                return original;
+            }
+
+            private static VectorLF3 UseAutoSailForwardForPhysics(VectorLF3 original)
+            {
+                if (s_NavigateInstance != null &&
+                    s_NavigateInstance.enable &&
+                    AutoNavigation.HasAutoSailURot)
+                {
+                    return AutoNavigation.AutoSailURot * Vector3.forward;
+                }
+
+                return original;
+            }
+
+            private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                FieldInfo fwdRayUDirField = AccessTools.Field(typeof(PlayerController), "fwdRayUDir");
+                FieldInfo targetURotField = AccessTools.Field(typeof(SailPoser), "targetURot");
+                FieldInfo targetURotWantedField = AccessTools.Field(typeof(SailPoser), "targetURotWanted");
+                MethodInfo useAutoSailForward = AccessTools.Method(
+                    typeof(SailMode_AutoNavigate),
+                    nameof(UseAutoSailForwardForPhysics));
+                MethodInfo useAutoSailURot = AccessTools.Method(
+                    typeof(SailMode_AutoNavigate),
+                    nameof(UseAutoSailURotForPhysics));
+
+                foreach (CodeInstruction instruction in instructions)
+                {
+                    yield return instruction;
+
+                    if (instruction.opcode == OpCodes.Ldfld &&
+                        instruction.operand as FieldInfo == fwdRayUDirField)
+                    {
+                        yield return new CodeInstruction(OpCodes.Call, useAutoSailForward);
+                    }
+
+                    bool isSailRotRead =
+                        instruction.opcode == OpCodes.Ldfld &&
+                        (instruction.operand as FieldInfo == targetURotField ||
+                         instruction.operand as FieldInfo == targetURotWantedField);
+                    if (isSailRotRead)
+                        yield return new CodeInstruction(OpCodes.Call, useAutoSailURot);
                 }
             }
         }

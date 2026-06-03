@@ -13,14 +13,16 @@ Main behavior:
 - Set a starmap direction indicator.
 - Press `K` or numpad `0` to toggle auto navigation.
 - Press `Left Ctrl` over a starmap target to quick-set the indicator.
-- Press `W/A/S/D` to cancel auto navigation.
+- Press `W/A/S/D` to cancel auto navigation or take manual control.
+- During auto navigation, mouse movement is kept for camera viewing only and no
+  longer steers Icarus away from the auto-navigation route.
 
 Current notes:
 
 - Built against current local DSP game assemblies.
 - Keeps the old lightweight behavior instead of using CruiseAssist/AutoPilot.
-- Adjusts current DSP sail input behavior so mouse turning does not take over
-  the auto-navigation direction.
+- For current DSP versions, auto-navigation separates the camera look direction
+  from the sail physics direction.
 
 See [AUTO_NAVIGATION_PORT.md](AUTO_NAVIGATION_PORT.md) for detailed port notes.
 Chinese notes are available at

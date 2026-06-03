@@ -12,6 +12,9 @@ namespace AutoNavigate
         private const int THRUSTER_LEVEL_SAIL = 2;
         private const int THRUSTER_LEVEL_WARP = 3;
 
+        public static bool HasAutoSailURot;
+        public static Quaternion AutoSailURot;
+
         public enum NavigateType
         {
             Null,
@@ -267,6 +270,7 @@ namespace AutoNavigate
             player = null;
             enable = false;
             sailSpeedUp = false;
+            HasAutoSailURot = false;
 
             if (useConfigFile)
             {
@@ -795,9 +799,8 @@ namespace AutoNavigate
         {
             public static void SetDir(PlayerMove_Sail __instance, VectorLF3 dir)
             {
-                Quaternion targetURot = Quaternion.LookRotation(dir);
-                __instance.sailPoser.targetURot = targetURot;
-                __instance.sailPoser.targetURotWanted = targetURot;
+                AutoSailURot = Quaternion.LookRotation(dir);
+                HasAutoSailURot = true;
             }
 
             public static void TrySpeedUp(AutoNavigation __this, PlayerMove_Sail __instance)

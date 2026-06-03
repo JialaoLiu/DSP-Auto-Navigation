@@ -1,4 +1,4 @@
-﻿# AutoNavigation 当前版本适配说明
+# AutoNavigation 当前版本适配说明
 
 [ENG](AUTO_NAVIGATION_PORT.md) | 中文
 
@@ -6,40 +6,28 @@
 
 参考来源：[DarlingZeroX/DspMods](https://github.com/DarlingZeroX/DspMods)
 
-测试用游戏路径：
-
-```text
-E:\Game\Steam\steamapps\common\Dyson Sphere Program
-```
-
-构建时引用：
-
-- `DSPGAME_Data\Managed\Assembly-CSharp.dll`
-- `DSPGAME_Data\Managed\netstandard.dll`
-- 同一个游戏目录下的 Unity managed assemblies
-- BepInEx 5.4.17
-
-## 改动内容
-
-自动航行行为尽量保持轻量、接近老手感：
+## 行为说明
 
 - 按 `K` 或小键盘 `0` 开启/关闭自动航行。
 - 使用星图方位指示作为目标。
 - 星图中按 `Left Ctrl` 仍可快速设置目标方位指示。
-- `W/A/S/D` 仍会取消自动航行。
+- `W/A/S/D` 仍会取消自动航行或手动接管。
+- 自动航行期间，鼠标只用于转动相机看风景，不再控制伊卡洛斯偏离自动航线。
 
-兼容性修改：
+## 兼容性修改
 
 - 将项目引用改到当前本机 DSP 游戏程序集。
 - 新增 `netstandard.dll` 和 `UnityEngine.InputLegacyModule.dll` 引用。
 - 移除了旧的 post-build event，原事件会把 DLL 复制到写死的 Steam 路径并启动 Steam。
 - `ModTranslate.LocalText()` 现在直接返回原文本，因为旧版本地化 API 已经与当前游戏程序集不兼容。
 
-当前 DSP 航行控制修正：
+## 航行控制修正
 
-- 当前版本的 `PlayerMove_Sail.GameTick` 会把 `controller.input1.x` 应用到 `sailPoser.targetURotWanted`，这会让鼠标/转向输入影响自动航行方向。
-- 自动航行期间，本版本会在原版 sail tick 执行时临时清空 `controller.input1.x`，执行结束后再恢复。
-- `Sail.SetDir()` 现在同时写入 `targetURot` 和 `targetURotWanted`，以匹配当前游戏的两阶段航行旋转状态。
+当前版本 DSP 的航行模式会把相机朝向输入作为航行物理的一部分，所以鼠标看向哪里也会影响伊卡洛斯飞向哪里。当前版本在自动航行期间将两者分离：
+
+- Mod 内部保存一份自动航行用的航向，不再直接写死 `SailPoser` 的相机状态。
+- 航行物理会读取 `PlayerController.fwdRayUDir`、`SailPoser.targetURot` 和 `SailPoser.targetURotWanted`；自动航行期间，这些读取会被替换成自动航行方向。
+- 实际相机状态仍然可以跟随鼠标自由转动。
 
 ## 构建
 
@@ -71,6 +59,5 @@ Dyson Sphere Program\BepInEx\plugins\AutoNavigation.dll
 当前 release DLL：
 
 ```text
-SHA256: 5DE3EFF5F17880FD1FB36C285C83EEE24309872EB1906EDF2CAD86F63619B3D0
+SHA256: A914DB3AF4CD178E04C4191AAED3F87790F9EB3474C46D4664584498AF820F83
 ```
-
