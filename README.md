@@ -12,6 +12,7 @@ newer DSP builds.
 - Press `K` or numpad `0` to toggle auto navigation.
 - Press `Left Ctrl` over a starmap target to quick-set the indicator.
 - Press `W/A/S/D` to cancel auto navigation or take manual control.
+- Supports navigation to Dark Fog hives through starmap direction indicators.
 - During auto navigation, mouse movement controls the camera only. It no longer
   steers Icarus away from the route.
 
@@ -31,6 +32,8 @@ Sail-control changes for current DSP:
 
 - Current DSP sail mode uses camera-facing input as part of sail physics, so
   mouse look can also steer Icarus.
+- Dark Fog hive targets are resolved from the game's own starmap indicator
+  astro id and navigated with the hive astro position.
 - This build stores an internal auto-navigation sail direction instead of
   directly writing it into the camera-linked `SailPoser` state.
 - During auto navigation, sail physics reads of `PlayerController.fwdRayUDir`,
