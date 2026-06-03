@@ -163,12 +163,10 @@ namespace AutoNavigate
                 modeText.gameObject.SetActive(true);
                 modeText.rectTransform.anchoredPosition = anchoredPosition;
 
-                if (s_NavigateInstance.IsCurNavPlanet)
+                if (s_NavigateInstance.IsCurNavPlanet || s_NavigateInstance.IsCurNavHive)
                     modeText.text = "星际自动导航".LocalText();
                 else if (s_NavigateInstance.IsCurNavStar)
                     modeText.text = "星系自动导航".LocalText();
-                else if (s_NavigateInstance.IsCurNavHive)
-                    modeText.text = "黑雾巢穴自动导航".LocalText();
 
                 s_NavigateInstance.modeText = modeText;
             }
